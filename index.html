@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>金融俠客修仙錄：K線飛昇版</title>
+    <title>金融俠客修仙錄：月結飛昇版</title>
     <style>
         :root {
             --bg-color: #0d1117;
@@ -11,12 +11,12 @@
             --border: #30363d;
             --text-main: #c9d1d9;
             --text-dim: #8b949e;
-            --highlight: #f2cc60; /* 金色 */
-            --accent: #58a6ff;    /* 藍色 */
-            --red: #ff7b72;       /* 跌/虧 */
-            --green: #3fb950;     /* 漲/盈 */
-            --rare: #d2a8ff;      /* 紫色 */
-            --legendary: #ffa657; /* 橙色 */
+            --highlight: #f2cc60;
+            --red: #ff7b72;
+            --green: #3fb950;
+            --rare: #d2a8ff;
+            --legendary: #ffa657;
+            --btn-hover: #444;
         }
 
         * { box-sizing: border-box; user-select: none; }
@@ -56,7 +56,7 @@
             position: relative;
         }
 
-        /* HUD 儀表板 */
+        /* HUD */
         #hud {
             background: var(--panel-bg);
             padding: 15px;
@@ -65,159 +65,163 @@
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-
         .hud-card {
             background: rgba(255,255,255,0.03);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 10px;
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
         }
-
         .main-stat { font-size: 20px; font-weight: bold; color: var(--highlight); letter-spacing: 1px; }
-        .sub-stat { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-        
+        .sub-stat { font-size: 11px; color: var(--text-dim); }
         .attr-row { display: flex; justify-content: space-between; font-size: 12px; margin-top: 5px; }
-        .attr-box { display: flex; align-items: center; gap: 4px; }
         
-        /* 進度條 */
+        /* Bars */
         .bar-bg { width: 60px; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
         .bar-fill { height: 100%; transition: width 0.3s; }
 
-        /* K線圖區域 */
-        #chart-area {
-            position: relative;
-            height: 250px;
-            background: #0d1117;
-            border-bottom: 1px solid var(--border);
-        }
+        /* Chart */
+        #chart-area { position: relative; height: 220px; background: #0d1117; border-bottom: 1px solid var(--border); }
         canvas { width: 100%; height: 100%; display: block; }
-        
-        #stock-overlay {
-            position: absolute; top: 10px; left: 10px;
-            pointer-events: none;
-        }
+        #stock-overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; }
         .stock-title { font-size: 22px; font-weight: 900; color: rgba(255,255,255,0.8); text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        .stock-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
 
+        /* News */
         #news-marquee {
-            background: #1f1f1f;
-            color: var(--highlight);
-            padding: 8px;
-            font-size: 13px;
-            white-space: nowrap;
-            overflow: hidden;
-            border-bottom: 1px solid var(--border);
+            background: #1f1f1f; color: var(--highlight); padding: 8px; font-size: 13px;
+            white-space: nowrap; overflow: hidden; border-bottom: 1px solid var(--border);
             display: flex; align-items: center;
         }
         .news-tag { background: var(--red); color: #000; font-weight: bold; font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-right: 8px; }
         .news-tag.good { background: var(--green); }
 
-        /* 日誌區 */
+        /* Log */
         #log-area {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 10px;
-            font-size: 13px;
-            display: flex; flex-direction: column; gap: 5px;
+            flex-grow: 1; overflow-y: auto; padding: 10px; font-size: 13px;
+            display: flex; flex-direction: column; gap: 8px;
         }
-        .log-item { padding: 6px 10px; border-left: 2px solid #333; background: rgba(255,255,255,0.02); animation: slideIn 0.2s; }
-        .log-item.profit { border-left-color: var(--red); background: rgba(255, 77, 77, 0.05); }
-        .log-item.loss { border-left-color: var(--green); background: rgba(46, 204, 113, 0.05); }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* 物品欄 */
-        #inventory {
-            height: 50px; background: #111; border-top: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 10px; gap: 5px; overflow-x: auto;
-        }
-        .item { 
-            min-width: 36px; height: 36px; border: 1px solid #444; border-radius: 4px; 
-            display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; position: relative;
-        }
-        .item:hover { border-color: var(--highlight); background: #222; }
-        .item-badge { position: absolute; bottom: -2px; right: -2px; font-size: 9px; background: #000; color: #fff; padding: 0 2px; }
-
-        /* 控制區 */
-        #controls {
-            padding: 10px; background: var(--panel-bg); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-        }
-        .control-group { grid-column: span 4; display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+        .log-item { padding: 8px 10px; border-left: 3px solid #333; background: rgba(255,255,255,0.05); animation: slideIn 0.2s; border-radius: 0 4px 4px 0; }
+        .log-item.profit { border-left-color: var(--red); background: rgba(255, 77, 77, 0.1); }
+        .log-item.loss { border-left-color: var(--green); background: rgba(46, 204, 113, 0.1); }
+        .log-item.event { border-left-color: var(--highlight); background: rgba(242, 204, 96, 0.05); }
         
-        button {
-            padding: 12px; border: none; border-radius: 4px; color: white; font-weight: bold; font-family: inherit; cursor: pointer; position: relative; overflow: hidden;
-            transition: transform 0.1s;
+        /* Event Buttons - Revised for visibility */
+        .event-btn-group { margin-top: 8px; display: flex; gap: 8px; }
+        .event-btn {
+            background: #21262d; border: 1px solid #555; color: #fff;
+            padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+            transition: all 0.2s;
         }
-        button:active { transform: scale(0.98); }
-        .btn-buy { background: var(--red); grid-column: span 2; } /* 華人區紅漲 */
-        .btn-sell { background: var(--green); grid-column: span 2; } /* 華人區綠跌 */
-        .btn-skip { background: #333; grid-column: span 4; color: #aaa; padding: 8px; font-size: 12px; }
+        .event-btn:hover { background: var(--highlight); color: #000; border-color: var(--highlight); }
 
-        /* 滑塊 */
+        /* Inventory */
+        #inventory { height: 50px; background: #111; border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 10px; gap: 5px; overflow-x: auto; }
+        .item { min-width: 36px; height: 36px; border: 1px solid #444; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; }
+        .item:hover { border-color: var(--highlight); background: #222; }
+
+        /* Controls */
+        #controls { padding: 10px; background: var(--panel-bg); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        button { padding: 12px; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; font-family: inherit; }
+        .btn-buy { background: var(--red); grid-column: span 2; }
+        .btn-sell { background: var(--green); grid-column: span 2; }
+        .btn-skip { background: #333; grid-column: span 4; color: #aaa; padding: 8px; font-size: 12px; }
         input[type=range] { width: 100px; accent-color: var(--highlight); }
 
         /* Modal */
         .modal {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
             z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
-            backdrop-filter: blur(8px);
         }
         .hidden { display: none !important; }
         
-        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-height: 70vh; overflow-y: auto; }
+        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-height: 60vh; overflow-y: auto; margin-bottom: 15px; }
         .choice-card {
-            background: #21262d; border: 1px solid var(--border); padding: 15px; border-radius: 6px; cursor: pointer;
+            background: #21262d; border: 1px solid var(--border); padding: 12px; border-radius: 6px; cursor: pointer; text-align: left; position: relative;
         }
-        .choice-card:hover { border-color: var(--highlight); background: #2c313a; }
-        .choice-card.selected { border-color: var(--highlight); box-shadow: 0 0 15px rgba(242, 204, 96, 0.2); }
-        .choice-card h3 { margin: 0 0 5px 0; color: var(--highlight); }
-        .choice-card p { font-size: 12px; color: var(--text-dim); margin: 0; line-height: 1.4; }
+        .choice-card:hover { border-color: var(--highlight); background: #30363d; }
+        .choice-card.selected { border-color: var(--highlight); background: #30363d; box-shadow: 0 0 10px rgba(242,204,96,0.3); }
+        .choice-card h3 { margin: 0 0 5px 0; color: var(--highlight); font-size: 14px; }
+        .choice-card p { font-size: 11px; color: var(--text-dim); margin: 0; }
+        .legendary-border { border: 1px solid var(--legendary) !important; box-shadow: 0 0 5px var(--legendary); }
 
-        .dice-btn { background: #21262d; border: 1px solid var(--border); width: 40px; }
+        /* Report Card */
+        .report-card { background: #161b22; border: 2px solid var(--border); padding: 20px; border-radius: 10px; width: 90%; text-align: center; }
+        .grade-text { font-size: 60px; font-weight: bold; margin: 10px 0; text-shadow: 0 0 20px currentColor; }
+        .grade-S { color: var(--legendary); }
+        .grade-A { color: var(--highlight); }
+        .grade-B { color: var(--green); }
+        .grade-C { color: var(--text-main); }
+        .grade-F { color: var(--red); }
+        .report-detail { font-size: 14px; color: #aaa; margin-bottom: 5px; text-align: left; border-bottom: 1px dashed #333; padding-bottom: 5px; }
+        .flavor-text { font-style: italic; color: var(--text-dim); margin: 15px 0; font-size: 12px; }
+
     </style>
 </head>
 <body>
 
 <!-- Start Screen -->
 <div id="start-screen" class="modal">
-    <h1 style="color:var(--highlight); text-transform:uppercase; letter-spacing:3px; margin-bottom:5px;">金融俠客</h1>
-    <span style="font-size:12px; color:var(--text-dim); margin-bottom:20px;">VER 3.0 // K-LINE UPDATE</span>
+    <h1 style="color:var(--highlight); margin-bottom:5px;">金融俠客</h1>
+    <span style="font-size:12px; color:var(--text-dim); margin-bottom:20px;">目標：一千萬 ($10,000,000)</span>
     
-    <div style="display:flex; gap:5px; width:100%; margin-bottom:15px;">
+    <div style="display:flex; gap:5px; width:100%; margin-bottom:10px;">
         <input type="text" id="input-name" placeholder="輸入道號" style="flex:1; padding:10px; background:#0d1117; border:1px solid var(--border); color:#fff;">
-        <button class="dice-btn" onclick="randomName()">🎲</button>
+        <button onclick="randomName()" style="width:40px; background:#333;">🎲</button>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-bottom:5px;">
+        <p style="font-size:12px; color:var(--text-dim); margin:0;">選擇 2 個天賦 (隨機刷新)</p>
+        <button onclick="renderTraits()" style="padding:4px 8px; font-size:10px; background:#444;">🔄 刷新</button>
     </div>
 
-    <p style="font-size:12px; color:var(--text-dim)">請選擇 2 項開局天賦：</p>
     <div id="trait-list" class="card-grid"></div>
-    <button onclick="startGame()" style="width:100%; margin-top:15px; background:var(--highlight); color:#000;">初始化賬戶</button>
+    <button onclick="startGame()" style="width:100%; background:var(--highlight); color:#000;">開始修仙</button>
 </div>
 
-<!-- Roguelike Level Up -->
+<!-- Monthly Report Screen -->
+<div id="report-screen" class="modal hidden">
+    <div class="report-card">
+        <h2 style="margin:0; text-transform:uppercase;">月結報告</h2>
+        <div id="report-month" style="font-size:12px; color:#666;">Month 1</div>
+        
+        <div id="report-grade" class="grade-text grade-C">C</div>
+        
+        <div class="report-detail">💰 本月盈虧: <span id="report-pnl" style="float:right;">$0</span></div>
+        <div class="report-detail">📊 交易勝率: <span id="report-winrate" style="float:right;">0%</span></div>
+        <div class="report-detail">❤️ 結算狀態: <span id="report-status" style="float:right;">正常</span></div>
+        
+        <p id="report-flavor" class="flavor-text">"活著就是勝利..."</p>
+        
+        <button onclick="closeReport()" style="width:100%; background:var(--bg-color); border:1px solid var(--highlight); color:var(--highlight);">
+            前往境界突破 ->
+        </button>
+    </div>
+</div>
+
+<!-- Level Up Screen -->
 <div id="levelup-screen" class="modal hidden">
     <h2 style="color:var(--rare)">境界突破</h2>
-    <p style="font-size:12px; color:#aaa; margin-bottom:20px;">本月結算完成，請選擇一項能力：</p>
+    <p id="levelup-msg" style="font-size:12px; color:#aaa; margin-bottom:15px;">請選擇一項能力：</p>
     <div id="skill-choices" class="card-grid" style="grid-template-columns: 1fr;"></div>
+    <button id="btn-skip-upgrade" onclick="nextDay()" class="hidden" style="width:100%; background:#333;">繼續修行</button>
 </div>
 
 <!-- Main Game -->
 <div id="game-container" class="hidden">
-    <!-- HUD -->
     <div id="hud">
         <div class="hud-card">
-            <span class="sub-stat">總資產 (目標: $1億)</span>
+            <span class="sub-stat">總資產 (目標: $1000萬)</span>
             <span class="main-stat" id="ui-money">$0</span>
             <div class="attr-row">
-                <span>月收支: <span id="ui-income" style="color:var(--green)">+$0</span></span>
+                <span>盈虧: <span id="ui-pnl">0%</span></span>
                 <span>Day <span id="ui-day">1</span></span>
             </div>
         </div>
         <div class="hud-card">
             <span class="sub-stat">狀態監控</span>
             <div class="attr-row" style="margin-top:8px;">
-                <div class="attr-box">⚡ <div class="bar-bg"><div id="bar-stress" class="bar-fill" style="width:0%; background:var(--red)"></div></div></div>
-                <div class="attr-box">😄 <div class="bar-bg"><div id="bar-happy" class="bar-fill" style="width:100%; background:var(--highlight)"></div></div></div>
+                <div style="display:flex;align-items:center;gap:4px">⚡ <div class="bar-bg"><div id="bar-stress" class="bar-fill" style="width:0%; background:var(--red)"></div></div></div>
+                <div style="display:flex;align-items:center;gap:4px">😄 <div class="bar-bg"><div id="bar-happy" class="bar-fill" style="width:100%; background:var(--highlight)"></div></div></div>
             </div>
             <div class="attr-row">
                 <span>🍀 運氣: <span id="ui-luck">50</span></span>
@@ -226,132 +230,124 @@
         </div>
     </div>
 
-    <!-- Chart -->
     <div id="chart-area">
         <canvas id="kline-canvas"></canvas>
         <div id="stock-overlay">
-            <div class="stock-title" id="stock-name">LOADING...</div>
-            <div class="stock-sub" id="stock-sub">TECH | VOL: HIGH</div>
+            <div class="stock-title" id="stock-name">---</div>
+            <div style="font-size:11px; color:#666;" id="stock-sub">--</div>
         </div>
     </div>
 
-    <!-- News -->
     <div id="news-marquee">
         <span id="news-tag" class="news-tag">NEWS</span>
-        <marquee scrollamount="5" id="news-text">歡迎進入市場...</marquee>
+        <marquee scrollamount="6" id="news-text">...</marquee>
     </div>
 
-    <!-- Log -->
     <div id="log-area"></div>
-
-    <!-- Inventory -->
     <div id="inventory"></div>
 
-    <!-- Controls -->
     <div id="controls">
-        <div class="control-group">
-            <span style="font-size:12px; color:#aaa;">倉位控制: <span id="pos-val" style="color:#fff; font-weight:bold;">20%</span></span>
-            <input type="range" min="1" max="4" value="2" oninput="updatePos(this.value)">
+        <div style="grid-column:span 4; display:flex; justify-content:space-between; color:#aaa; font-size:12px; margin-bottom:2px;">
+            <span>倉位: <span id="pos-val" style="color:#fff; font-weight:bold;">20%</span></span>
         </div>
+        <input style="grid-column:span 4; margin-bottom:5px;" type="range" min="1" max="4" value="2" oninput="updatePos(this.value)">
         
-        <button class="btn-buy" onclick="trade('long')">做多 (LONG)<br><span style="font-size:10px; opacity:0.7">看漲買入</span></button>
-        <button class="btn-sell" onclick="trade('short')">做空 (SHORT)<br><span style="font-size:10px; opacity:0.7">看跌賣出</span></button>
-        <button class="btn-skip" onclick="skipDay()">空倉觀望 (恢復狀態)</button>
+        <button class="btn-buy" onclick="trade('long')">做多 (LONG)</button>
+        <button class="btn-sell" onclick="trade('short')">做空 (SHORT)</button>
+        <button class="btn-skip" onclick="skipDay()">空倉觀望</button>
     </div>
 </div>
 
-<!-- End Screen -->
 <div id="end-screen" class="modal hidden">
     <h1 id="end-title" style="color:var(--red)">破產</h1>
-    <p id="end-reason">你倒在了黎明前。</p>
+    <p id="end-reason">...</p>
     <h2 id="end-score" style="color:var(--highlight)">$0</h2>
     <button onclick="location.reload()" style="background:#333; margin-top:20px;">轉世輪迴</button>
 </div>
 
 <script>
-/**
- * 遊戲數據庫 - 充滿惡趣味與網路梗
- */
-const DB = {
-    names: ["韭菜一號", "天台VIP", "華爾街之狼", "巴菲特門徒", "梭哈居士", "負二代", "公屋股神", "幣圈難民", "打工皇帝", "鹹魚翻身", "滿倉踏空", "老賴預備軍", "夢想家", "精神股東", "接盤俠"],
-    
-    // 股票名稱庫
-    stockPrefix: ["量子", "元宇宙", "深海", "火星", "賽博", "納米", "虛擬", "區塊", "核能", "生化", "智能", "6G", "超導"],
-    stockSuffix: ["科技", "重工", "醫藥", "娛樂", "動力", "能源", "食品", "防務", "物流", "地產"],
-    
-    // 新聞庫 (Tag: 1=Good, -1=Bad, 0=Neutral)
-    news: [
-        {t: "CEO涉嫌詐騙", c: "{name} CEO 被發現挪用公款充值手游，股價承壓。", v: -25, tag: -1},
-        {t: "工廠爆炸", c: "{name} 位於東南亞的血汗工廠發生爆炸，產能歸零。", v: -15, tag: -1},
-        {t: "財報造假", c: "審計發現 {name} 的利潤全是 Excel 畫出來的。", v: -30, tag: -1},
-        {t: "產品自燃", c: "{name} 的旗艦產品被曝在用戶口袋中自燃。", v: -10, tag: -1},
-        {t: "被做空", c: "知名機構發布 {name} 做空報告：一文不值。", v: -20, tag: -1},
-        {t: "技術突破", c: "{name} 宣稱研發出永動機（雖然沒人信）。", v: 15, tag: 1},
-        {t: "被收購", c: "傳聞馬斯克有意收購 {name}，盤前大漲。", v: 25, tag: 1},
-        {t: "政府補貼", c: "{name} 獲得國家級「專精特新」巨額補貼。", v: 10, tag: 1},
-        {t: "產品爆紅", c: "{name} 的新品在 TikTok 上爆紅，全球斷貨。", v: 20, tag: 1},
-        {t: "AI加持", c: "{name} 宣布全線產品接入 ChatGPT，股民高潮。", v: 15, tag: 1},
-        {t: "平淡無奇", c: "{name} 今日無事發生，員工在摸魚。", v: 0, tag: 0},
-        {t: "高層內鬥", c: "{name} 創始人與聯合創始人在辦公室互毆。", v: -5, tag: -1},
-        {t: "神秘訂單", c: "中東土豪向 {name} 下了一筆神秘大單。", v: 10, tag: 1}
-    ],
+/** 遊戲數據與常量 **/
+const GOAL = 10000000; // 一千萬
+const NAMES = ["韭菜一號", "天台VIP", "華爾街之狼", "巴菲特門徒", "梭哈居士", "負二代", "公屋股神", "幣圈難民", "打工皇帝", "鹹魚翻身", "滿倉踏空", "老賴預備軍", "夢想家", "精神股東", "接盤俠", "最後一博", "止損是啥"];
 
-    // 奇遇事件 (Event)
-    events: [
-        {
-            title: "內幕消息", text: "你在廁所聽到兩個大佬談論代碼。",
-            opts: [{t:"偷聽", f: (s)=>{ s.nextWin=true; return "獲得必勝情報！"; }}, {t:"無視", f: (s)=>{ s.stress-=10; return "心如止水，壓力-10"; }}]
-        },
-        {
-            title: "殺豬盤", text: "美女頭像網友加你，推薦「穩賺」項目。",
-            opts: [{t:"相信她", f: (s)=>{ s.money*=0.5; s.stress+=20; return "被騙了一半身家！"; }}, {t:"拉黑", f: (s)=>{ s.luck+=5; return "智商佔領高地，運氣+5"; }}]
-        },
-        {
-            title: "系統BUG", text: "交易軟件出現漏洞，顯示餘額多了一個零。",
-            opts: [{t:"利用BUG", f: (s)=>{ if(Math.random()>0.5){s.money+=50000; return "白嫖成功！+$50000";}else{s.money-=20000; return "被系統反向扣款罰金！";} }}, {t:"報告", f: (s)=>{ s.happy+=10; return "獲得「好市民」稱號，快樂+10"; }}]
-        },
-        {
-            title: "玄學大師", text: "大師說你印堂發黑，需破財擋災。",
-            opts: [{t:"給錢 $5000", f: (s)=>{ s.money-=5000; s.luck+=20; return "感覺運氣變好了！"; }}, {t:"滾", f: (s)=>{ s.luck-=10; return "出門踩到狗屎，運氣-10"; }}]
-        }
-    ],
+// 20+ 天賦池
+const TRAIT_POOL = [
+    {id:1, n:"富二代", d:"開局自帶 $30萬", func: s=>{s.money+=300000;}},
+    {id:2, n:"負債修行", d:"本金$50萬，但每月還貸$1.5萬", func: s=>{s.money=500000; s.loan=15000;}},
+    {id:3, n:"打工皇帝", d:"工資翻倍至 $30,000", func: s=>{s.salary=30000;}},
+    {id:4, n:"絕對理性", d:"壓力恆定為0，但快樂上限50", func: s=>{s.stressLock=true; s.happy=50; s.maxHappy=50;}},
+    {id:5, n:"天選之子", d:"初始運氣 90", func: s=>{s.luck=90;}},
+    {id:6, n:"倒霉蛋", d:"運氣 10，但開局獲得「後悔藥」x3", func: s=>{s.luck=10; s.inventory.push('pill','pill','pill');}},
+    {id:7, n:"內幕交易員", d:"開局獲得「內幕手機」x2", func: s=>{s.inventory.push('insider','insider');}},
+    {id:8, n:"我爸是Elon", d:"【彩蛋】極低概率直接獲勝，或被騙光本金", rare:true, func: s=>{
+        if(Math.random()<0.3) { alert("你爸真的是Elon！轉賬一億！"); s.money=100000000; checkEnd(); }
+        else { alert("你爸是假冒的！捲款潛逃！本金歸零！"); s.money=0; s.luck=100; s.name="被騙的私生子"; }
+    }},
+    {id:9, n:"公屋戶主", d:"生活費極低 ($2000)", func: s=>{s.cost=2000;}},
+    {id:10, n:"玻璃心", d:"壓力增加翻倍，但運氣+10", func: s=>{s.trait_glass=true; s.luck+=10;}},
+    {id:11, n:"賭徒", d:"波動率增加 20%", func: s=>{s.trait_gambler=true;}},
+    {id:12, n:"精算師", d:"能大概率識破假新聞", func: s=>{s.trait_math=true;}},
+    {id:13, n:"慎重勇者", d:"虧損減少 10%", func: s=>{s.trait_careful=true;}},
+    {id:14, n:"快樂肥宅", d:"快樂值恢復加倍", func: s=>{s.trait_happy=true;}},
+    {id:15, n:"失眠症", d:"每個月強制休息一天", func: s=>{s.trait_insomnia=true;}},
+    {id:16, n:"軟飯王", d:"資產<0時，隨機有富婆資助", func: s=>{s.trait_sugar=true;}},
+    {id:17, n:"技術流", d:"初始習得「透視眼」技能", func: s=>{s.skills.push('eye');}},
+    {id:18, n:"長線持有", d:"初始習得「鑽石手」技能", func: s=>{s.skills.push('hands');}},
+    {id:19, n:"槓桿狂魔", d:"只能 50% 或 100% 倉位", func: s=>{s.trait_leverage=true;}},
+    {id:20, n:"極簡主義", d:"開局生活費減半", func: s=>{s.cost/=2;}}
+];
 
-    // 物品/技能
-    items: {
-        "insider": {icon:"📱", name:"內幕手機", desc:"使用後下一次交易強制獲利"},
-        "pill": {icon:"💊", name:"後悔藥", desc:"回復所有快樂與壓力，並重置今日"},
-        "elon": {icon:"🚀", name:"馬斯克推文", desc:"強制製造超級利好行情"},
-        "coffee": {icon:"☕", name:"冰美式", desc:"快樂+20，壓力-20"}
-    },
+// 升級技能庫
+const SKILLS = [
+    {id:"eye", n:"透視眼", d:"新聞旁顯示漲跌傾向提示"},
+    {id:"hands", n:"鑽石手", d:"虧損時心態傷害減半，且虧損額-10%"},
+    {id:"tax", n:"避稅專線", d:"每月結算生活費減少 40%"},
+    {id:"whale", n:"巨鯨吞噬", d:"獲利 >$1萬 時，額外獎金 +$5000"},
+    {id:"beggar", n:"丐幫心法", d:"資產 <$2萬 時，月底自動領低保"},
+    {id:"time", n:"時間管理", d:"有 10% 機率交易不消耗天數"},
+    {id:"luck_up", n:"轉運", d:"運氣永久 +10"},
+    {id:"salary_up", n:"加薪", d:"打工收入 +50%"}
+];
 
-    skills: [
-        {id:"eye", name:"透視眼", desc:"K線圖會顯示未來一天的虛影 (勝率大幅提升)"},
-        {id:"hands", name:"鑽石手", desc:"虧損時，壓力增加減半；持有過夜收益+10%"},
-        {id:"tax", name:"避稅專線", desc:"每月結算時，生活費減少 50%"},
-        {id:"whale", name:"巨鯨吞噬", desc:"獲利超過 $10000 時，額外獲得 $5000 獎金"},
-        {id:"beggar", name:"丐幫", desc:"資產低於 $10000 時，每月自動獲得救濟金"}
-    ]
+// 隨機總結語
+const MONTHLY_QUOTES = [
+    "只要還活著，就還有希望。", "這月吃的土，是下個月的磚。", "離豪宅又近了一步（大概）。", "股市有風險，入市需謹慎。", 
+    "感覺自己像一顆綠油油的韭菜。", "什麼時候才能財富自由？", "心態崩了，但還要微笑面對。", "這K線畫得比心電圖還刺激。", 
+    "本月成就：活著。", "下個月一定回本！", "莊家盯上我了？", "又是白忙活的一個月。", 
+    "我愛工作，工作使我快樂（假）。", "梭哈是一種智慧。", "穩健投資，雖遲但到。", "不要慫，滿倉幹。", 
+    "天台的風有點大。", "我命由我不由天！", "再來一億，我能翻盤。", "平平淡淡才是真。"
+];
+
+// 新聞庫
+const NEWS = [
+    {t:"CEO涉嫌詐騙", v:-25, tag:-1}, {t:"工廠爆炸", v:-15, tag:-1}, {t:"財報造假", v:-30, tag:-1}, 
+    {t:"產品自燃", v:-10, tag:-1}, {t:"遭機構做空", v:-20, tag:-1}, {t:"技術突破", v:15, tag:1}, 
+    {t:"傳聞被收購", v:25, tag:1}, {t:"獲巨額補貼", v:10, tag:1}, {t:"產品爆紅", v:20, tag:1}, 
+    {t:"AI賦能", v:15, tag:1}, {t:"無事發生", v:0, tag:0}, {t:"高層內鬥", v:-5, tag:-1}, 
+    {t:"神秘大單", v:10, tag:1}, {t:"黑客攻擊", v:-10, tag:-1}, {t:"宣布回購", v:10, tag:1}
+];
+
+const ITEMS = {
+    "insider": {icon:"📱", n:"內幕手機", d:"下一次交易必勝"},
+    "pill": {icon:"💊", n:"後悔藥", d:"回復所有狀態"},
+    "elon": {icon:"🚀", n:"馬斯克推文", d:"製造超級利好"},
+    "coffee": {icon:"☕", n:"冰美式", d:"壓-20 樂+20"}
 };
 
-// 遊戲狀態
 let state = {
     day: 1, money: 0, stress: 0, happy: 100, luck: 50,
     salary: 15000, cost: 10000, loan: 0,
     name: "", traits: [], skills: [], inventory: [],
     
-    // 市場狀態
-    stock: null, // {name, history[], volatility, news, trendVal}
-    posPct: 0.2,
-    daysWithoutEvent: 0,
-    nextWin: false,
+    // 月度統計
+    monthStartMoney: 0,
+    monthWins: 0,
+    monthLosses: 0,
     
-    // 圖表實例
+    // 臨時
+    stock: null, posPct: 0.2, nextWin: false,
     ctx: null
 };
-
-// 工具函數
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const formatMoney = (n) => "$" + Math.floor(n).toLocaleString();
 
 /* --- 初始化 --- */
 function init() {
@@ -361,30 +357,30 @@ function init() {
 }
 
 function randomName() {
-    document.getElementById('input-name').value = DB.names[rand(0, DB.names.length-1)];
+    document.getElementById('input-name').value = NAMES[Math.floor(Math.random()*NAMES.length)];
 }
 
 function renderTraits() {
-    const list = [
-        {t:"富二代", d:"開局 +$20萬，無學貸", func: s=>{s.money=200000;}},
-        {t:"負債賭狗", d:"開局 +$50萬，每月還貸$1萬", func: s=>{s.money=500000; s.loan=10000;}},
-        {t:"打工皇帝", d:"工資翻倍 ($30000)", func: s=>{s.salary=30000;}},
-        {t:"歐皇", d:"初始運氣 90，容易觸發好事", func: s=>{s.luck=90;}},
-        {t:"面癱", d:"壓力恆定為 0，快樂恆定 50", func: s=>{s.stressLock=true; s.happyLock=true; s.happy=50;}},
-        {t:"內幕狗", d:"開局自帶 3 個內幕手機", func: s=>{s.inventory.push('insider','insider','insider');}}
-    ];
+    // 隨機選6個，包含彩蛋
+    let pool = [...TRAIT_POOL];
+    let choices = [];
+    for(let i=0; i<6; i++) {
+        let idx = Math.floor(Math.random() * pool.length);
+        choices.push(pool[idx]);
+        pool.splice(idx, 1);
+    }
     
     const div = document.getElementById('trait-list');
     div.innerHTML = "";
-    list.forEach((item, idx) => {
+    choices.forEach(t => {
         let el = document.createElement('div');
-        el.className = 'choice-card';
-        el.innerHTML = `<h3>${item.t}</h3><p>${item.d}</p>`;
+        el.className = 'choice-card' + (t.rare ? ' legendary-border' : '');
+        el.innerHTML = `<h3>${t.n}</h3><p>${t.d}</p>`;
         el.onclick = () => {
             if(el.classList.contains('selected')) el.classList.remove('selected');
             else if(document.querySelectorAll('.choice-card.selected').length < 2) el.classList.add('selected');
         };
-        el.data = item;
+        el.data = t;
         div.appendChild(el);
     });
 }
@@ -394,252 +390,241 @@ function startGame() {
     if(sels.length !== 2) return alert("請選擇 2 個天賦！");
     
     state.name = document.getElementById('input-name').value;
-    if(state.money === 0) state.loan = 0; // Reset if default
+    
+    // 基礎設定
+    if(state.money === 0) { state.money = 0; state.loan = 0; }
 
     sels.forEach(el => el.data.func(state));
     
-    // 若沒選錢，給默認
+    // 沒錢時的默認選擇
     if(state.money === 0) {
-        if(confirm("是否申請助學貸款 $200,000 (月還$5000)?\n取消則為 $0 開局打工。")) {
+        if(confirm("是否申請貸款 $200,000 (月還$5000)?\n取消則 $0 開局打工。")) {
             state.money = 200000; state.loan = 5000;
         }
     }
+    
+    state.monthStartMoney = state.money;
 
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-container').classList.remove('hidden');
     
-    log(`賬戶初始化完成。歡迎你，${state.name}。`);
+    log(`賬戶初始化完成。目標：$1000萬。`);
     nextDay();
 }
 
 /* --- 核心循環 --- */
 function nextDay() {
     state.day++;
-    state.daysWithoutEvent++;
     
-    // 1. 月結
-    if(state.day % 30 === 0) {
-        monthlySettle();
-        return; // 月結後暫停等待操作
+    // 月結檢查
+    if(state.day > 1 && (state.day-1) % 30 === 0) {
+        showMonthlyReport();
+        return;
     }
 
-    // 2. 生成新股票
     generateStock();
-
-    // 3. 更新UI
     updateUI();
     drawChart();
 
-    // 4. 事件檢查 (每10天保底，或隨機)
-    if(state.daysWithoutEvent >= 8 || Math.random() < 0.15) {
-        triggerEvent();
-    }
+    // 隨機事件 (基礎15%，運氣影響)
+    let chance = 0.15 + (state.luck > 80 ? 0.05 : 0);
+    if(Math.random() < chance) triggerEvent();
 }
 
-function monthlySettle() {
+/* --- 月結與升級系統 --- */
+function showMonthlyReport() {
+    // 結算
     let cost = state.cost;
-    if(state.skills.includes("tax")) cost /= 2;
-    
+    if(state.skills.includes("tax")) cost *= 0.6;
     let income = state.salary;
-    let loan = state.loan;
+    if(state.skills.includes("salary_up")) income *= 1.5;
     
-    if(state.skills.includes("beggar") && state.money < 10000) {
-        income += 5000;
-        log("【丐幫】觸發，領取救濟金 $5000");
-    }
+    // 丐幫與軟飯
+    if(state.skills.includes("beggar") && state.money < 20000) { income += 5000; log("丐幫低保 +$5000"); }
+    if(state.trait_sugar && state.money < 0) { let s = 20000; state.money += s; log(`富婆資助 +$${s}`); }
 
-    state.money += (income - cost - loan);
-    log(`【月結】工資+${income}, 生活費-${cost}, 還貸-${loan}`);
+    state.money += (income - cost - state.loan);
+    log(`【月度收支】工資+$${income}, 生活費-$${cost}, 還貸-$${state.loan}`);
+
+    // 計算評級
+    let pnl = state.money - state.monthStartMoney;
+    let totalTrades = state.monthWins + state.monthLosses;
+    let winRate = totalTrades > 0 ? (state.monthWins / totalTrades * 100).toFixed(1) : 0;
     
-    // 升級選擇
-    showLevelUp();
+    let grade = 'C';
+    let gradeClass = 'grade-C';
+    
+    if(state.money < 0) { grade = 'F'; gradeClass = 'grade-F'; }
+    else if(pnl < 0) { grade = 'D'; gradeClass = 'grade-F'; }
+    else if(pnl > 200000) { grade = 'A'; gradeClass = 'grade-A'; }
+    else if(pnl > 50000) { grade = 'B'; gradeClass = 'grade-B'; }
+    
+    // S+ 條件：本月有交易且無虧損
+    let isSPlus = (state.monthLosses === 0 && state.monthWins > 0);
+    if(isSPlus) { grade = 'S+'; gradeClass = 'grade-S'; }
+
+    // 填充報告UI
+    document.getElementById('report-month').innerText = `Month ${Math.floor((state.day-1)/30)}`;
+    document.getElementById('report-grade').innerText = grade;
+    document.getElementById('report-grade').className = `grade-text ${gradeClass}`;
+    document.getElementById('report-pnl').innerText = (pnl>=0?"+":"") + formatMoney(pnl);
+    document.getElementById('report-pnl').style.color = pnl>=0 ? 'var(--red)' : 'var(--green)';
+    document.getElementById('report-winrate').innerText = winRate + "%";
+    document.getElementById('report-status').innerText = state.stress > 80 ? "崩潰" : "良好";
+    document.getElementById('report-flavor').innerText = `"${MONTHLY_QUOTES[Math.floor(Math.random()*MONTHLY_QUOTES.length)]}"`;
+
+    document.getElementById('game-container').classList.add('hidden');
+    document.getElementById('report-screen').classList.remove('hidden');
+
+    // 準備升級數據
+    state.tempIsSPlus = isSPlus;
+    
+    // 重置月度數據
+    state.monthStartMoney = state.money;
+    state.monthWins = 0;
+    state.monthLosses = 0;
 }
 
-function showLevelUp() {
+function closeReport() {
+    document.getElementById('report-screen').classList.add('hidden');
+    showLevelUp(state.tempIsSPlus);
+}
+
+function showLevelUp(isSPlus) {
     document.getElementById('levelup-screen').classList.remove('hidden');
     const box = document.getElementById('skill-choices');
     box.innerHTML = "";
     
-    // 隨機選3個技能或物品
-    let pool = [...DB.skills]; // 淺拷貝
-    let opts = [];
+    let msg = document.getElementById('levelup-msg');
+    
+    // 隨機選3個
+    let pool = SKILLS.filter(s => !state.skills.includes(s.id));
+    // 如果技能學完了，就給錢
+    if(pool.length === 0) {
+        msg.innerText = "已習得所有神功，獲得修為獎勵 ($50000)";
+        state.money += 50000;
+        document.getElementById('btn-skip-upgrade').classList.remove('hidden');
+        return;
+    }
+
+    let choices = [];
     for(let i=0; i<3; i++) {
-        if(pool.length === 0) break;
-        let idx = rand(0, pool.length-1);
-        opts.push(pool[idx]);
+        if(pool.length===0) break;
+        let idx = Math.floor(Math.random()*pool.length);
+        choices.push(pool[idx]);
         pool.splice(idx, 1);
     }
-    
-    opts.forEach(s => {
+
+    if(isSPlus) {
+        msg.innerHTML = "<span style='color:var(--legendary)'>【S+ 完美評價】</span> 你的悟性突破天際，習得所有選項！";
+        document.getElementById('btn-skip-upgrade').innerText = "全部拿走 (繼續)";
+        document.getElementById('btn-skip-upgrade').onclick = () => {
+            choices.forEach(s => { state.skills.push(s.id); log(`習得: ${s.n}`); });
+            document.getElementById('levelup-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            nextDay();
+        };
+        document.getElementById('btn-skip-upgrade').classList.remove('hidden');
+    } else {
+        msg.innerText = "請選擇一項精進：";
+        document.getElementById('btn-skip-upgrade').classList.add('hidden');
+    }
+
+    choices.forEach(s => {
         let el = document.createElement('div');
         el.className = 'choice-card';
-        el.innerHTML = `<h3 style="color:var(--rare)">${s.name}</h3><p>${s.desc}</p>`;
-        el.onclick = () => {
-            state.skills.push(s.id);
-            log(`習得技能：${s.name}`);
-            document.getElementById('levelup-screen').classList.add('hidden');
-            nextDay(); // 繼續下一天
-        };
+        if(isSPlus) el.className += ' selected';
+        el.innerHTML = `<h3 style="color:var(--rare)">${s.n}</h3><p>${s.d}</p>`;
+        if(!isSPlus) {
+            el.onclick = () => {
+                state.skills.push(s.id);
+                log(`習得技能：${s.n}`);
+                document.getElementById('levelup-screen').classList.add('hidden');
+                document.getElementById('game-container').classList.remove('hidden');
+                nextDay();
+            };
+        }
         box.appendChild(el);
     });
 }
 
-/* --- 市場與K線系統 --- */
+/* --- 市場與交易 --- */
 function generateStock() {
-    let name = DB.stockPrefix[rand(0, DB.stockPrefix.length-1)] + DB.stockSuffix[rand(0, DB.stockSuffix.length-1)];
-    let volatility = rand(2, 8); // 基礎波動
-    let trend = rand(-1, 1); // -1跌, 0震盪, 1漲
+    let name = "隨機股票" + Math.floor(Math.random()*1000); // 簡化名
+    let news = NEWS[Math.floor(Math.random()*NEWS.length)];
+    let volatility = 5 + (state.trait_gambler ? 2 : 0);
     
-    // 生成歷史 K 線 (30天)
-    let history = [];
-    let price = rand(50, 200);
-    
-    for(let i=0; i<30; i++) {
-        let change = (Math.random() - 0.5 + (trend * 0.1)) * volatility;
-        let open = price;
-        let close = open * (1 + change/100);
-        let high = Math.max(open, close) * (1 + Math.random()*0.02);
-        let low = Math.min(open, close) * (1 - Math.random()*0.02);
-        
-        history.push({o:open, h:high, l:low, c:close});
-        price = close;
-    }
-
-    // 決定今日新聞 (影響明日結果)
-    let newsItem = DB.news[rand(0, DB.news.length-1)];
-    
-    // 技能影響 (透視眼)
-    let futureTrend = 0;
+    // 透視眼
     if(state.skills.includes("eye")) {
-        // 簡單提示
-        document.getElementById('stock-sub').innerText += " [透視: " + (newsItem.v > 0 ? "漲" : "跌") + "]";
+        // 50% 機率看準
+        let hint = (Math.random() > 0.3) ? (news.tag===1 ? "[漲]" : (news.tag===-1?"[跌]":"[-]")) : "[?]";
+        news.hint = hint;
     }
 
-    state.stock = {
-        name: name,
-        history: history,
-        news: newsItem,
-        volatility: volatility,
-        currentPrice: price
-    };
-}
-
-function drawChart() {
-    const ctx = state.ctx;
-    const canvas = document.getElementById('kline-canvas');
-    // Resize
-    canvas.width = document.getElementById('chart-area').offsetWidth;
-    canvas.height = document.getElementById('chart-area').offsetHeight;
-    
-    const W = canvas.width;
-    const H = canvas.height;
-    const data = state.stock.history;
-    const count = data.length;
-    const barW = (W - 40) / count;
-    
-    // Find Min/Max for scaling
-    let min = 99999, max = 0;
-    data.forEach(d => {
-        if(d.l < min) min = d.l;
-        if(d.h > max) max = d.h;
-    });
-    let range = max - min;
-    const getY = (p) => H - 20 - ((p - min) / range) * (H - 40);
-
-    ctx.clearRect(0,0,W,H);
-    
-    // Grid
-    ctx.strokeStyle = "#222";
-    ctx.beginPath();
-    for(let i=0; i<5; i++) {
-        let y = H/5 * i;
-        ctx.moveTo(0, y); ctx.lineTo(W, y);
+    // 生成K線數據... (省略複雜算法，用隨機代替)
+    let history = [];
+    let price = 100;
+    for(let i=0;i<30;i++) {
+        price = price * (1 + (Math.random()-0.5)*0.1);
+        history.push({o:price, c:price*(1+(Math.random()-0.5)*0.05), h:price*1.05, l:price*0.95});
     }
-    ctx.stroke();
 
-    // Draw Candles
-    data.forEach((d, i) => {
-        let x = 10 + i * barW;
-        let yO = getY(d.o);
-        let yC = getY(d.c);
-        let yH = getY(d.h);
-        let yL = getY(d.l);
-        
-        let isUp = d.c >= d.o;
-        ctx.fillStyle = isUp ? "#ff7b72" : "#3fb950"; // 紅漲綠跌
-        ctx.strokeStyle = ctx.fillStyle;
-        
-        // Line
-        ctx.beginPath();
-        ctx.moveTo(x + barW/2, yH);
-        ctx.lineTo(x + barW/2, yL);
-        ctx.stroke();
-        
-        // Rect
-        let h = Math.abs(yC - yO);
-        if(h < 1) h = 1;
-        ctx.fillRect(x + 2, Math.min(yO, yC), barW - 4, h);
-    });
+    state.stock = { name, history, news, volatility };
 }
 
-/* --- 交易與操作 --- */
 function updatePos(val) {
-    const pcts = [0.05, 0.2, 0.5, 1.0];
-    state.posPct = pcts[val-1];
-    document.getElementById('pos-val').innerText = (state.posPct * 100) + "%";
+    if(state.trait_leverage && (val == 1 || val == 2)) {
+        alert("【槓桿狂魔】你控制不住自己，只能半倉或滿倉！");
+        document.querySelector('input[type=range]').value = 3;
+        state.posPct = 0.5;
+    } else {
+        const pcts = [0.05, 0.2, 0.5, 1.0];
+        state.posPct = pcts[val-1];
+    }
+    document.getElementById('pos-val').innerText = (state.posPct*100) + "%";
 }
 
 function trade(type) {
-    // 檢查心態失控
+    // 壓力失控
     if(!state.stressLock && state.stress > 90) {
-        if(Math.random() < 0.5) {
-            log("🛑 壓力過大！你的手不聽使喚！(隨機操作)");
-            type = Math.random() > 0.5 ? 'long' : 'short';
+        if(Math.random()<0.5) {
+            log("🛑 心態崩了！胡亂操作！");
+            type = Math.random()>0.5 ? 'long':'short';
         }
     }
 
     let bet = state.money * state.posPct;
-    if(bet < 100) bet = state.money; // All in if poor
-    if(state.money <= 0) return alert("沒錢了！");
+    if(bet<100) bet=state.money;
+    if(state.money<=0) return alert("沒錢了！");
 
-    // 計算結果
     let s = state.stock;
-    let impact = s.news.v + (state.luck - 50)*0.2; // 新聞+運氣
-    
-    // 神器效果
-    if(state.nextWin) { impact = 100; state.nextWin = false; log("📱 內幕消息生效！"); }
-    
-    let changePct = (Math.random() * s.volatility + impact/5); // 實際漲跌幅
-    // 簡單模擬：如果 impact > 0 傾向漲
-    let dir = 1;
-    if(Math.random()*100 > (50 + impact)) dir = -1;
-    
-    let finalChange = dir * Math.abs(changePct);
-    
-    // 結算
-    let pnl = 0;
-    if(type === 'long') pnl = bet * (finalChange / 100);
-    else pnl = bet * (-finalChange / 100);
+    let impact = s.news.v + (state.luck-50)*0.2;
+    if(state.nextWin) { impact=100; state.nextWin=false; log("📱 內幕生效！"); }
 
-    // 技能修正
-    if(pnl < 0 && state.skills.includes("hands")) {
-        pnl *= 0.9; // 虧損減少
-        state.stress -= 5; // 鑽石手心態好
+    let change = (Math.random()*s.volatility + impact/5);
+    let dir = (Math.random()*100 > (50+impact)) ? -1 : 1;
+    let finalChange = dir * Math.abs(change);
+
+    let pnl = (type==='long' ? 1 : -1) * bet * (finalChange/100);
+    
+    // 技能結算
+    if(pnl < 0 && (state.skills.includes("hands") || state.trait_careful)) {
+        pnl *= 0.9; 
     }
     if(pnl > 10000 && state.skills.includes("whale")) {
-        state.money += 5000;
-        log("🐋 巨鯨吞噬！額外獎勵 $5000");
+        state.money += 5000; log("🐋 巨鯨獎勵 +$5000");
     }
 
     state.money += pnl;
-
-    // 心態影響
+    
     if(pnl > 0) {
-        logItem(`交易 ${s.name}: 盈利 ${formatMoney(pnl)} (${finalChange.toFixed(2)}%)`, 'profit');
-        changeState(-5, 5); // 壓- 快+
+        logItem(`交易: 盈利 ${formatMoney(pnl)}`, 'profit');
+        changeState(-5, 5);
+        state.monthWins++;
     } else {
-        logItem(`交易 ${s.name}: 虧損 ${formatMoney(Math.abs(pnl))} (${finalChange.toFixed(2)}%)`, 'loss');
+        logItem(`交易: 虧損 ${formatMoney(Math.abs(pnl))}`, 'loss');
         changeState(10, -5);
+        state.monthLosses++;
     }
 
     checkEnd();
@@ -647,90 +632,131 @@ function trade(type) {
 }
 
 function skipDay() {
-    log("☕ 你選擇空倉觀望，調整心態。");
-    changeState(-10, 10);
+    log("觀望一天...");
+    changeState(-10, 5);
     nextDay();
 }
 
+/* --- 事件系統 (優化版) --- */
 function triggerEvent() {
-    state.daysWithoutEvent = 0;
-    let evt = DB.events[rand(0, DB.events.length-1)];
-    
-    // 簡單使用 confirm 模擬彈窗，或者直接 Log
-    // 為了流暢，這裡直接寫入 Log 並提供按鈕 (稍微複雜，這裡簡化為隨機自動或彈窗)
-    // 這裡用 prompt 模擬選擇 (不夠好看)，改為用 Log 區顯示可點擊鏈接 (HTML)
+    const EVENTS = [
+        {t:"小道消息", msg:"聽到有人在談論內幕...", opts:[
+            {n:"偷聽", f:()=>{ 
+                if(Math.random()<0.7) {state.nextWin=true; return "獲得可靠情報！";} 
+                else {state.stress+=20; return "聽到假消息，血壓升高！";} 
+            }},
+            {n:"無視", f:()=>{ state.stress-=5; return "心態平和。"; }}
+        ]},
+        {t:"殺豬盤", msg:"網友推薦高回報項目", opts:[
+            {n:"梭哈", f:()=>{ 
+                if(Math.random()<0.1) {state.money*=2; return "居然是真的！資產翻倍！";} 
+                else {state.money*=0.7; state.stress+=30; return "被騙了30%本金！";} 
+            }},
+            {n:"拉黑", f:()=>{ state.luck+=5; return "智商佔領高地。"; }}
+        ]},
+        {t:"炒股大賽", msg:"報名費 $5000，贏了獎 $50000", opts:[
+            {n:"參加", f:()=>{ 
+                if(state.money<5000) return "沒錢報名...";
+                state.money-=5000;
+                if(state.luck + Math.random()*50 > 80) {state.money+=50000; return "奪冠！獲得獎金！";}
+                else {state.stress+=10; return "第一輪就被淘汰了。";}
+            }},
+            {n:"吃瓜", f:()=>{ return "看戲真開心。"; }}
+        ]}
+    ];
+
+    let evt = EVENTS[Math.floor(Math.random()*EVENTS.length)];
     
     let div = document.createElement('div');
-    div.className = 'log-item';
-    div.style.borderLeftColor = 'var(--rare)';
-    div.innerHTML = `<strong style="color:var(--rare)">[奇遇] ${evt.title}</strong><br>${evt.text}<br>`;
+    div.className = 'log-item event';
+    div.innerHTML = `<strong>[奇遇] ${evt.t}</strong><br>${evt.msg}`;
     
-    evt.opts.forEach((opt, idx) => {
+    let btnGroup = document.createElement('div');
+    btnGroup.className = 'event-btn-group';
+    
+    evt.opts.forEach(opt => {
         let btn = document.createElement('button');
-        btn.innerText = opt.t;
-        btn.style.marginRight = "5px";
-        btn.style.padding = "4px 8px";
-        btn.style.fontSize = "11px";
-        btn.style.marginTop = "5px";
-        btn.onclick = function() {
-            let res = opt.f(state);
-            log(`> 選擇了 [${opt.t}]: ${res}`);
-            div.remove(); // 移除選項
+        btn.className = 'event-btn';
+        btn.innerText = opt.n;
+        btn.onclick = () => {
+            let res = opt.f();
+            log(`> [${opt.n}]: ${res}`);
+            div.remove();
             updateUI();
         };
-        div.appendChild(btn);
+        btnGroup.appendChild(btn);
     });
     
+    div.appendChild(btnGroup);
     document.getElementById('log-area').prepend(div);
 }
 
-/* --- 系統與UI --- */
+/* --- UI與輔助 --- */
 function updateUI() {
     document.getElementById('ui-money').innerText = formatMoney(state.money);
-    document.getElementById('ui-income').innerText = (state.salary - state.cost - state.loan > 0 ? "+" : "") + formatMoney(state.salary - state.cost - state.loan);
+    let pnl = ((state.money - 200000)/200000 * 100).toFixed(2); // 簡單參考
+    document.getElementById('ui-pnl').innerText = pnl + "%";
     document.getElementById('ui-day').innerText = state.day;
     document.getElementById('ui-luck').innerText = state.luck;
     
-    // Bars
     document.getElementById('bar-stress').style.width = state.stress + "%";
     document.getElementById('bar-happy').style.width = state.happy + "%";
     
-    // Market Info
+    // News
     let s = state.stock;
     document.getElementById('stock-name').innerText = s.name;
-    document.getElementById('stock-sub').innerText = "VOLATILITY: " + s.volatility + "%";
-    
-    let newsHTML = `<span class="news-tag ${s.news.tag===1?'good':''}">NEWS</span> ${s.news.c.replace("{name}", s.name)}`;
-    document.getElementById('news-marquee').innerHTML = newsHTML;
+    document.getElementById('stock-sub').innerText = `波動: ${s.volatility}%` + (s.news.hint ? ` ${s.news.hint}` : "");
+    document.getElementById('news-text').innerHTML = `<span class="news-tag ${s.news.tag===1?'good':''}">NEWS</span> ${s.news.t}`;
     
     // Inventory
     let invDiv = document.getElementById('inventory');
     invDiv.innerHTML = "";
-    // 這裡簡化：點擊物品直接使用
-    state.inventory.forEach((itemId, idx) => {
-        let item = DB.items[itemId];
+    state.inventory.forEach((id, idx) => {
+        let item = ITEMS[id];
         let el = document.createElement('div');
         el.className = 'item';
         el.innerText = item.icon;
-        el.title = item.name + ": " + item.desc;
-        el.onclick = () => useItem(itemId, idx);
+        el.onclick = () => {
+            if(id=='insider'){state.nextWin=true; log("使用內幕手機");}
+            if(id=='pill'){state.stress=0;state.happy=100; log("狀態回滿");}
+            if(id=='elon'){state.stock.news.v=50;state.stock.news.tag=1;state.stock.news.t="馬斯克喊單"; updateUI(); log("馬斯克來了");}
+            if(id=='coffee'){changeState(-20,20); log("喝咖啡");}
+            state.inventory.splice(idx,1);
+            updateUI();
+        };
         invDiv.appendChild(el);
     });
 }
 
-function useItem(id, idx) {
-    if(id === "insider") { state.nextWin = true; log("使用內幕手機: 下次必勝"); }
-    if(id === "pill") { state.happy=100; state.stress=0; log("服用後悔藥: 狀態全滿"); }
-    if(id === "elon") { state.stock.news = {v:50, tag:1, c:"馬斯克喊單！"}; updateUI(); log("馬斯克發推了！"); }
-    if(id === "coffee") { changeState(-20, 20); log("喝了杯咖啡"); }
+function drawChart() {
+    const ctx = state.ctx;
+    const W = ctx.canvas.width = document.getElementById('chart-area').offsetWidth;
+    const H = ctx.canvas.height = document.getElementById('chart-area').offsetHeight;
+    const data = state.stock.history;
+    const bw = W / 30;
     
-    state.inventory.splice(idx, 1);
-    updateUI();
+    let min=99999, max=0;
+    data.forEach(d=>{ if(d.l<min)min=d.l; if(d.h>max)max=d.h; });
+    
+    ctx.clearRect(0,0,W,H);
+    data.forEach((d,i)=>{
+        let x = i*bw;
+        let yO = H - ((d.o-min)/(max-min))*(H-20) - 10;
+        let yC = H - ((d.c-min)/(max-min))*(H-20) - 10;
+        let yH = H - ((d.h-min)/(max-min))*(H-20) - 10;
+        let yL = H - ((d.l-min)/(max-min))*(H-20) - 10;
+        
+        ctx.fillStyle = d.c >= d.o ? '#ff7b72' : '#3fb950';
+        ctx.strokeStyle = ctx.fillStyle;
+        
+        ctx.beginPath(); ctx.moveTo(x+bw/2, yH); ctx.lineTo(x+bw/2, yL); ctx.stroke();
+        ctx.fillRect(x+2, Math.min(yO,yC), bw-4, Math.abs(yC-yO)||1);
+    });
 }
 
 function changeState(s, h) {
     if(!state.stressLock) state.stress = Math.max(0, Math.min(100, state.stress + s));
-    if(!state.happyLock) state.happy = Math.max(0, Math.min(100, state.happy + h));
+    state.happy = Math.max(0, Math.min(state.maxHappy||100, state.happy + h));
 }
 
 function logItem(msg, type='') {
@@ -740,22 +766,21 @@ function logItem(msg, type='') {
     document.getElementById('log-area').prepend(d);
 }
 function log(msg) { logItem(msg); }
+const formatMoney = n => "$" + Math.floor(n).toLocaleString();
 
 function checkEnd() {
-    if(state.money >= 100000000) endGame("財富自由", "你成為了傳奇！", state.money);
-    else if(state.money < -50000) endGame("跳樓結算", "資不抵債，再見了世界。", state.money);
+    if(state.money >= GOAL) endGame("財務自由", "你戰勝了資本，成為傳奇！", state.money);
+    else if(state.money < -50000) endGame("破產", "資不抵債，再見了。", state.money);
 }
 
-function endGame(title, reason, score) {
+function endGame(t, r, s) {
     document.getElementById('end-screen').classList.remove('hidden');
-    document.getElementById('end-title').innerText = title;
-    document.getElementById('end-reason').innerText = reason;
-    document.getElementById('end-score').innerText = formatMoney(score);
+    document.getElementById('end-title').innerText = t;
+    document.getElementById('end-reason').innerText = r;
+    document.getElementById('end-score').innerText = formatMoney(s);
 }
 
-// Start
 init();
-
 </script>
 </body>
 </html>
