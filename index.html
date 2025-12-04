@@ -150,7 +150,7 @@
         /* 彈窗 */
         .overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.98);
             z-index: 100;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 20px; box-sizing: border-box;
@@ -164,10 +164,14 @@
             cursor: pointer; transition: transform 0.1s; text-align: left;
         }
         .card:hover { transform: scale(1.02); border-color: var(--highlight); }
+        .card.selected { border-color: var(--highlight); background: #34495e; box-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
         .card h3 { margin: 0 0 5px 0; color: var(--highlight); }
         .card p { margin: 0; font-size: 13px; color: #ccc; }
         
         .rogue-title { color: var(--rare); margin-bottom: 20px; text-shadow: 0 0 10px var(--rare); }
+
+        .name-input-group { display: flex; gap: 5px; width: 100%; margin-bottom: 15px; }
+        .dice-btn { background: #444; width: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 
         /* 動效 */
         .pop { animation: pop 0.2s; }
@@ -180,10 +184,14 @@
     <div id="start-screen" class="overlay">
         <h1>金融俠客修仙錄 <span style="font-size:12px; color:var(--highlight)">飛升版</span></h1>
         <p>請輸入道號（名字）：</p>
-        <input type="text" id="player-name" value="韭菜一號" style="padding:10px; font-size:16px; margin-bottom:15px; background:#333; color:#fff; border:1px solid #555;">
-        <p>選擇兩項先天靈根（天賦）：</p>
+        <div class="name-input-group">
+            <input type="text" id="player-name" value="韭菜一號" style="flex:1; padding:10px; font-size:16px; background:#333; color:#fff; border:1px solid #555;">
+            <button class="dice-btn" onclick="randomizeName()" title="隨機名字">🎲</button>
+        </div>
+        
+        <p>請選擇 <strong style="color:var(--highlight)">2</strong> 項先天靈根：</p>
         <div id="trait-selection" class="card-container" style="grid-template-columns: 1fr 1fr;"></div>
-        <button onclick="confirmStart()" style="width:100%; margin-top:15px; background:var(--highlight); color:#000;">開始修仙</button>
+        <button onclick="confirmStart()" style="width:100%; margin-top:15px; background:var(--highlight); color:#000; font-weight:bold;">開始修仙</button>
     </div>
 
     <!-- 升級/Roguelike 三選一 -->
@@ -281,6 +289,20 @@ const CONFIG = {
     SALARY: 15000
 };
 
+// 50個有趣名字庫
+const FUNNY_NAMES = [
+    "韭菜一號", "天台VIP", "華爾街之蟲", "輸光光", "負資產大亨",
+    "麵包超人", "零雞蛋", "梭哈居士", "破產財神", "公屋股神",
+    "幣少爺", "槓桿狂魔", "打工皇帝", "鹹魚翻身", "追高殺跌手",
+    "滿倉踏空", "地板價", "山頂洞人", "綠光戰士", "紅單俠",
+    "紙上富貴", "吃土少年", "泡麵鑑賞家", "還貸機器", "老賴預備役",
+    "夢想家", "各種不服", "頭鐵娃", "幸運E", "非洲酋長",
+    "歐皇附體", "馬斯克私生子", "巴菲特門徒", "索羅斯鄰居", "高盛保全",
+    "精神股東", "鍵盤操盤手", "模擬倉戰神", "實盤必死", "這波穩了",
+    "再來一單", "最後一博", "我要回本", "別攔我", "天選打工人",
+    "股市提款機", "莊家親戚", "接盤俠", "大閘蟹", "西北風品鑑師"
+];
+
 // 物品庫
 const ITEM_DB = {
     "insider_phone": { name: "內幕手機", icon: "📱", desc: "偷聽莊家電話，下一次交易強制獲利。", rarity: "legendary" },
@@ -335,6 +357,12 @@ let state = {
 
 function init() {
     renderTraits();
+    randomizeName();
+}
+
+function randomizeName() {
+    const idx = Math.floor(Math.random() * FUNNY_NAMES.length);
+    document.getElementById('player-name').value = FUNNY_NAMES[idx];
 }
 
 function renderTraits() {
@@ -353,47 +381,43 @@ function renderTraits() {
     // 洗牌取6個
     let pool = traits.sort(()=>0.5-Math.random()).slice(0,6);
     let container = document.getElementById('trait-selection');
+    container.innerHTML = ""; // 清空
     
     pool.forEach(t => {
         let div = document.createElement('div');
         div.className = 'card';
         div.innerHTML = `<h3>${t.name}</h3><p>${t.desc}</p>`;
-        div.onclick = () => {
+        // 綁定點擊事件
+        div.onclick = function() {
             if(div.classList.contains('selected')) {
                 div.classList.remove('selected');
-                div.style.borderColor = '#444';
             } else {
                 if(document.querySelectorAll('.card.selected').length < 2) {
                     div.classList.add('selected');
-                    div.style.borderColor = 'var(--highlight)';
                 }
             }
         };
-        div.traitData = t; // attach data
+        div.traitData = t; // attach data to DOM object
         container.appendChild(div);
     });
 }
 
 function confirmStart() {
     let selected = document.querySelectorAll('.card.selected');
-    if(selected.length !== 2) return alert("請選擇兩個天賦！");
+    if(selected.length !== 2) return alert("請必須選擇兩個天賦！");
     
     state.name = document.getElementById('player-name').value || "韭菜";
+    document.getElementById('player-display').innerText = state.name;
     
     // 應用天賦
     let startMoney = 0;
-    let hasLoan = false; // 默認是否負債開局邏輯需統一
-    
-    // 基礎設定：如果沒選特殊開局，默認打工模式
-    // 這裡簡化：如果有選加錢的天賦就用天賦，否則默認為「打工模式」（0開局）或「學貸模式」（玩家這裡可選嗎？照舊版邏輯簡化）
-    // 為了流暢，我們設定：如果有錢的天賦，疊加；否則基礎是 0 (打工) 或 20萬(借貸)。
-    // 讓我們設定一個基礎對話框二選一，或者直接在這裡處理。
-    // *簡化：* 沒選資金天賦的，默認是 $0 打工開局。
+    let hasLoan = false; 
+    let overrideStart = false; // 是否被天賦覆蓋了資金邏輯
     
     selected.forEach(el => {
         let t = el.traitData;
-        if(t.money) startMoney += t.money;
-        if(t.loan !== undefined) hasLoan = t.loan; // true or false override
+        if(t.money !== undefined) { startMoney += t.money; overrideStart = true; }
+        if(t.loan !== undefined) hasLoan = t.loan;
         if(t.stressLock) state.stressLocked = true;
         if(t.luck) state.luck = t.luck;
         if(t.items) t.items.forEach(i => gainItem(i));
@@ -401,6 +425,7 @@ function confirmStart() {
         if(t.stress) state.stress = t.stress;
         
         if(t.easterEgg) {
+            overrideStart = true;
             if(Math.random() > 0.5) {
                 alert("你爸真的是 Elon！直接轉帳 1000 億！");
                 state.money = 100000000000;
@@ -414,10 +439,9 @@ function confirmStart() {
         }
     });
 
-    // 如果沒有明確設定負債/資金，我們給一個標準開局選擇嗎？
-    // 為了快節奏，如果天賦沒給錢，默認為負債開局增加挑戰性
-    if(startMoney === 0) {
-        let userChoseLoan = confirm("開局選擇：\n[確定] 借貸 $200,000 (每月還 $5000)\n[取消] 打工 (初始 $0，無債)");
+    // 如果沒有被天賦覆蓋資金，給予標準選擇
+    if(!overrideStart) {
+        let userChoseLoan = confirm("開局資金選擇：\n\n[確定] 借貸梭哈 (本金 $200,000 / 月還 $5000)\n[取消] 穩健打工 (本金 $0 / 無債一身輕)");
         if(userChoseLoan) {
             startMoney = 200000;
             state.loan = CONFIG.LOAN_REPAY;
@@ -741,12 +765,7 @@ function triggerRandomEvent() {
         }
     ];
     
-    let evt = events[rand(0, events.length-1)];
-    // 為了簡單，事件直接彈窗或寫入Log，這裡簡化為 Log + 自動選擇(如果不做複雜彈窗)
-    // 為了更好體驗，做一個簡單的 `confirm` 或者直接在 log 區顯示互動按鈕
-    // 鑑於代碼量，我們這裡用 Log 顯示事件發生，並隨機給予結果，或者獲得物品
-    
-    // 改為直接掉落物品或狀態變化
+    // 為了簡化，隨機給予結果或物品，不彈出複雜對話框
     let r = Math.random();
     if(r < 0.3) {
         gainItem("stress_pill");
@@ -778,7 +797,8 @@ function renderInventory() {
         let div = document.createElement('div');
         div.className = 'item-slot';
         div.innerHTML = `${item.icon}<span class="item-count">${counts[id]}</span>`;
-        div.style.borderColor = item.rarity === 'legendary' ? var(--legendary) : (item.rarity==='rare'?var(--rare):'#555');
+        // 修復上一版的語法錯誤
+        div.style.borderColor = item.rarity === 'legendary' ? 'var(--legendary)' : (item.rarity==='rare'?'var(--rare)':'#555');
         div.onclick = () => showItemModal(id);
         bar.appendChild(div);
     });
