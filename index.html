@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融俠客行：期貨修仙錄</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --highlight: #f1c40f;
+            --red: #e74c3c; /* 跌/虧損 */
+            --green: #2ecc71; /* 升/盈利 - 依照國際慣例，若要中國慣例可互換 */
+            --panel-bg: #2c3e50;
+            --btn-bg: #34495e;
+            --btn-hover: #2980b9;
+        }
+        
+        /* 中國股市慣例：紅漲綠跌 */
+        .up { color: #e74c3c; font-weight: bold; }
+        .down { color: #2ecc71; font-weight: bold; }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #222;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #444;
+            border-right: 1px solid #444;
+            position: relative;
+        }
+
+        /* Header Stats */
+        #header {
+            padding: 10px;
+            background-color: var(--panel-bg);
+            border-bottom: 2px solid #000;
+            font-size: 14px;
+        }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .stat-box { width: 48%; }
+        .progress-bar { width: 100%; height: 8px; background: #555; margin-top: 2px; }
+        .progress-fill { height: 100%; transition: width 0.3s; }
+
+        /* Main Log Area */
+        #log-area {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.6;
+            background: #1e1e1e;
+        }
+        .log-entry { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #333; }
+        .log-date { color: #888; font-size: 12px; }
+        .event-text { color: var(--highlight); }
+        .danger-text { color: #e74c3c; }
+
+        /* Market Panel */
+        #market-panel {
+            background-color: var(--panel-bg);
+            padding: 10px;
+            border-top: 2px solid #000;
+        }
+        .stock-info { 
+            background: #111; padding: 10px; margin-bottom: 10px; border-radius: 5px; 
+            border: 1px solid #555;
+        }
+        .stock-title { font-size: 18px; color: var(--highlight); margin-bottom: 5px; }
+        .trend-info { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; }
+        .news-flash { margin-top: 5px; font-style: italic; color: #fff; font-size: 13px; }
+
+        /* Controls */
+        #controls {
+            padding: 10px;
+            background-color: #111;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+
+        button {
+            background-color: var(--btn-bg);
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        button:hover { background-color: var(--btn-hover); }
+        button:disabled { background-color: #555; cursor: not-allowed; opacity: 0.6; }
+        
+        .btn-long { background-color: #e74c3c; } /* 紅色做多 */
+        .btn-short { background-color: #2ecc71; } /* 綠色做空 */
+        .btn-skip { background-color: #95a5a6; grid-column: span 4; margin-top: 5px;}
+        
+        .position-selector { grid-column: span 4; display: flex; gap: 5px; margin-bottom: 5px; }
+        .pos-btn { flex: 1; font-size: 12px; }
+        .pos-btn.active { border: 2px solid var(--highlight); }
+
+        /* Modal / Overlays */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+        
+        .trait-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin: 20px 0; }
+        .trait-card { 
+            background: #333; padding: 10px; cursor: pointer; border: 1px solid #555; font-size: 13px;
+        }
+        .trait-card.selected { border-color: var(--highlight); background: #444; }
+
+        .choice-btn { width: 100%; margin: 5px 0; padding: 15px; text-align: left; background: #333; }
+
+        /* Utility */
+        h1, h2, h3 { margin: 0 0 10px 0; }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <!-- 啟動介面 / 特性選擇 -->
+    <div id="start-screen" class="overlay">
+        <h1>金融俠客修仙錄</h1>
+        <p>18歲，命運的齒輪開始轉動...</p>
+        <input type="text" id="player-name" placeholder="輸入你的名字" style="padding:10px; font-size:16px; margin-bottom:10px;">
+        <p>請選擇兩個天賦特性：</p>
+        <div id="trait-selection" class="trait-grid"></div>
+        <button onclick="confirmStart()" style="width:100%; padding: 15px; font-size: 18px;">開始人生</button>
+    </div>
+
+    <!-- 開局選擇 -->
+    <div id="career-choice" class="overlay hidden">
+        <h2>人生的岔路口</h2>
+        <p>剛滿18歲，你面臨重大抉擇：</p>
+        <button onclick="startGame(true)" class="choice-btn">
+            <strong>借貸梭哈 (All In)</strong><br>
+            借盡學貸 20萬起始資金，每月需還款 $5,000。
+        </button>
+        <button onclick="startGame(false)" class="choice-btn">
+            <strong>打工積累 (穩健)</strong><br>
+            起始資金 0，每月打工收入 $15,000。
+        </button>
+        <p style="margin-top:20px; font-size:12px; color:#888;">*無論選擇哪種，每月基礎生活費扣除 $10,000</p>
+    </div>
+
+    <!-- 遊戲主介面 -->
+    <div id="game-container" class="hidden">
+        <div id="header">
+            <div class="stat-row">
+                <div class="stat-box">💰 資金: <span id="val-money">0</span></div>
+                <div class="stat-box">📅 日期: <span id="val-date">第 1 天</span> (18歲)</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-box">
+                    😖 壓力: <span id="val-stress">0</span>/100
+                    <div class="progress-bar"><div id="bar-stress" class="progress-fill" style="width:0%; background:#e74c3c"></div></div>
+                </div>
+                <div class="stat-box">
+                    😄 快樂: <span id="val-happy">100</span>/100
+                    <div class="progress-bar"><div id="bar-happy" class="progress-fill" style="width:100%; background:#f1c40f"></div></div>
+                </div>
+            </div>
+            <div class="stat-row" style="font-size:12px; color:#aaa;">
+                <span>🍀 運氣: <span id="val-luck">50</span></span>
+                <span>🔥 狀態: <span id="val-status">正常</span></span>
+            </div>
+        </div>
+
+        <div id="log-area">
+            <div class="log-entry">歡迎來到金融市場，目標是賺取 <strong>一億 ($100,000,000)</strong>。</div>
+        </div>
+
+        <div id="market-panel">
+            <div class="stock-info">
+                <div class="stock-title" id="stock-name">---</div>
+                <div class="trend-info">
+                    <span>5日: <span id="trend-5">--</span></span>
+                    <span>1月: <span id="trend-30">--</span></span>
+                    <span>1年: <span id="trend-365">--</span></span>
+                </div>
+                <div class="news-flash" id="stock-news">今日休市</div>
+            </div>
+        </div>
+
+        <div id="controls">
+            <div class="position-selector">
+                <button class="pos-btn" onclick="setPos(0.05)">5%</button>
+                <button class="pos-btn active" onclick="setPos(0.2)">20%</button>
+                <button class="pos-btn" onclick="setPos(0.5)">50%</button>
+                <button class="pos-btn" onclick="setPos(1.0)">100%</button>
+            </div>
+            <button class="btn-long" onclick="trade('long')">做多 (Long)</button>
+            <button class="btn-short" onclick="trade('short')">做空 (Short)</button>
+            <button class="btn-long" onclick="trade('long')" style="visibility:hidden">X</button> <!-- Spacer -->
+            <button class="btn-short" onclick="trade('short')" style="visibility:hidden">X</button> <!-- Spacer -->
+            <button class="btn-skip" onclick="trade('skip')">什麼都不做 (休息)</button>
+        </div>
+    </div>
+
+    <!-- 奇遇介面 -->
+    <div id="event-screen" class="overlay hidden">
+        <h2 id="event-title">奇遇</h2>
+        <p id="event-desc">發生了什麼...</p>
+        <div id="event-choices" style="width:100%"></div>
+    </div>
+
+    <!-- 結局介面 -->
+    <div id="end-screen" class="overlay hidden">
+        <h1 id="end-title">遊戲結束</h1>
+        <p id="end-reason"></p>
+        <p>最終資產: <span id="end-money"></span></p>
+        <button onclick="location.reload()">重新開始</button>
+    </div>
+
+<script>
+/**
+ * 遊戲數據與常量
+ */
+const GAME_GOAL = 100000000;
+const LIVING_COST_BASE = 10000;
+const LOAN_REPAY = 5000;
+const SALARY_BASE = 15000;
+
+// 隨機名稱庫
+const STOCK_PREFIXES = ["騰雲", "華夏", "深藍", "極光", "螞蟻", "量子", "元宇宙", "智勝", "暴風", "熊貓"];
+const STOCK_SUFFIXES = ["科技", "生物", "重工", "能源", "互娛", "醫藥", "地產", "控股", "國際", "股份"];
+const NEWS_BAD = ["CEO捲款潛逃", "廠房發生爆炸", "業績遠低於預期", "遭到監管調查", "主要客戶違約", "產品出現嚴重缺陷"];
+const NEWS_GOOD = ["獲得政府巨額補貼", "研發取得重大突破", "業績超預期增長", "宣佈大額回購", "被巨頭溢價收購", "產品銷量創新高"];
+
+// 特性庫
+const TRAITS_POOL = [
+    {id: 1, name: "絕對理性", desc: "你是莫得感情的機器，壓力永遠為0。"},
+    {id: 2, name: "樂觀主義", desc: "愛笑的人運氣不會差，快樂值鎖定100。"},
+    {id: 3, name: "小康之家", desc: "父母資助，起始資金增加 $100,000。"},
+    {id: 4, name: "我有公屋", desc: "人生贏家，每月生活費降至 $1,000。"},
+    {id: 5, name: "打工聖體", desc: "老闆賞識，打工工資每年翻倍。"},
+    {id: 6, name: "玻璃心", desc: "壓力增加速度翻倍，但運氣初始+20。"},
+    {id: 7, name: "賭徒", desc: "炒股收益波動率極大。"},
+    {id: 8, name: "天選之子", desc: "初始運氣 90，容易遇到好事。"},
+    {id: 9, name: "倒霉蛋", desc: "初始運氣 10，走路都會踩屎。"},
+    {id: 10, name: "內幕消息", desc: "開局直接獲得一次「必勝」機會。"},
+    {id: 11, name: "健康達人", desc: "壓力上限提升至 150。"},
+    {id: 12, name: "揮霍無度", desc: "生活費增加 50%，但快樂回復快。"},
+    {id: 13, name: "慎重勇者", desc: "做多做空時，虧損減少 10%。"},
+    {id: 14, name: "神經刀", desc: "失控機率增加，但失控時可能賺大錢。"},
+    {id: 15, name: "社交達人", desc: "遇到奇遇的機率增加 20%。"},
+    {id: 16, name: "失眠症", desc: "每個月隨機強制休息一天。"},
+    {id: 17, name: "精算師", desc: "可以看穿部分虛假新聞 (提示更準確)。"},
+    {id: 18, name: "佛系", desc: "什麼都不做時，快樂值恢復雙倍。"},
+    {id: 19, name: "槓桿狂魔", desc: "只能選擇 50% 或 100% 倉位。"},
+    {id: 20, name: "我爸是Elon Musk", desc: "50%機率直接獲勝，50%機率破產開局但運氣爆棚。", isEasterEgg: true}
+];
+
+// 遊戲狀態
+let state = {
+    day: 1,
+    age: 18,
+    money: 0,
+    stress: 0,
+    happy: 100,
+    luck: 50,
+    hasLoan: false,
+    salary: 0,
+    livingCost: LIVING_COST_BASE,
+    traits: [],
+    name: "",
+    selectedPos: 0.2, // 20%
+    nextTradeWin: false, // 必勝flag
+    currentStock: null
+};
+
+// 工具函數
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const formatMoney = (m) => "$" + Math.floor(m).toLocaleString();
+
+/**
+ * 初始化邏輯
+ */
+function initStartScreen() {
+    // 隨機選6個特性供選擇 (必須包含 Elon Musk 如果隨機到的話，或者強制包含方便測試? 不，按要求隨機)
+    let shuffled = [...TRAITS_POOL].sort(() => 0.5 - Math.random());
+    let choices = shuffled.slice(0, 6);
+    
+    // 渲染特性
+    const container = document.getElementById('trait-selection');
+    container.innerHTML = '';
+    choices.forEach(t => {
+        let div = document.createElement('div');
+        div.className = 'trait-card';
+        div.innerHTML = `<strong>${t.name}</strong><br>${t.desc}`;
+        div.onclick = () => toggleTrait(div, t);
+        container.appendChild(div);
+    });
+}
+
+let selectedTraits = [];
+
+function toggleTrait(el, trait) {
+    if (selectedTraits.includes(trait)) {
+        selectedTraits = selectedTraits.filter(t => t !== trait);
+        el.classList.remove('selected');
+    } else {
+        if (selectedTraits.length < 2) {
+            selectedTraits.push(trait);
+            el.classList.add('selected');
+        }
+    }
+}
+
+function confirmStart() {
+    const name = document.getElementById('player-name').value;
+    if (!name) return alert("請輸入名字！");
+    if (selectedTraits.length !== 2) return alert("請選擇兩個特性！");
+    
+    state.name = name;
+    state.traits = selectedTraits;
+    
+    // 屬性初始化基於名字 (簡單哈希)
+    let seed = 0;
+    for(let i=0; i<name.length; i++) seed += name.charCodeAt(i);
+    state.luck = 40 + (seed % 40); // 40-80 base luck
+    
+    // 應用特性初始效果
+    applyTraitEffectsInit();
+    
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('career-choice').classList.remove('hidden');
+}
+
+function applyTraitEffectsInit() {
+    state.traits.forEach(t => {
+        if (t.id === 1) state.stressLocked = true; // 絕對理性
+        if (t.id === 2) state.happyLocked = true; // 樂觀主義
+        if (t.id === 3) state.money += 100000; // 小康之家
+        if (t.id === 4) state.livingCost = 1000; // 公屋
+        if (t.id === 6) state.luck += 20; // 玻璃心
+        if (t.id === 8) state.luck = 90; // 天選
+        if (t.id === 9) state.luck = 10; // 倒霉
+        if (t.id === 10) state.nextTradeWin = true; // 內幕
+        if (t.id === 11) state.maxStress = 150;
+        if (t.id === 12) state.livingCost *= 1.5; // 揮霍
+        
+        // 彩蛋檢測
+        if (t.isEasterEgg) {
+            if (Math.random() < 0.5) {
+                // 真 Elon
+                alert("彩蛋觸發：你爸真的是 Elon Musk！");
+                state.money = 100000000000;
+                checkWinCondition();
+            } else {
+                // 假 Elon
+                alert("彩蛋觸發：你爸是「伊撈媽」，其實是騙子。資產縮水，但你運氣爆棚！");
+                state.money *= 0.2;
+                state.luck += 200;
+            }
+        }
+    });
+}
+
+function startGame(isLoan) {
+    if (isLoan) {
+        state.money += 200000;
+        state.hasLoan = true;
+    } else {
+        state.money += 0;
+        state.salary = 15000;
+        // 打工聖體特性檢查
+        if (hasTrait(5)) state.isSaint = true;
+    }
+    
+    document.getElementById('career-choice').classList.add('hidden');
+    document.getElementById('game-container').classList.remove('hidden');
+    
+    log(`遊戲開始。${state.name} 踏入了社會。`);
+    if (state.hasLoan) log(`背負學貸 $200,000，每月需還 $5,000。`);
+    else log(`選擇打工，月薪 $15,000。`);
+    
+    updateUI();
+    nextDay();
+}
+
+/**
+ * 核心遊戲循環
+ */
+function nextDay() {
+    state.day++;
+    
+    // 每30天結算
+    if (state.day % 30 === 0) {
+        monthProcess();
+    }
+    
+    // 檢查輸贏
+    if (state.money < 0) return endGame("破產了", "你的資金歸零，流落街頭。");
+    if (state.money >= GAME_GOAL) return endGame("財務自由", "你達成了一個億的小目標！");
+
+    // 生成今日股票
+    generateDailyStock();
+    
+    // 更新UI
+    updateUI();
+    
+    // 隨機奇遇檢測 (基礎10% + 特性加成)
+    let encounterChance = 0.1;
+    if (hasTrait(15)) encounterChance += 0.2;
+    if (Math.random() < encounterChance) {
+        triggerEncounter();
+    }
+}
+
+function monthProcess() {
+    let cost = state.livingCost;
+    let income = state.salary;
+    let loan = state.hasLoan ? LOAN_REPAY : 0;
+    
+    // 打工聖體 每年(360天)翻倍
+    if (state.isSaint && state.day % 360 === 0) {
+        state.salary *= 2;
+        log(`【打工聖體】發動！工資翻倍至 ${formatMoney(state.salary)}！`);
+    }
+
+    state.money -= cost;
+    state.money -= loan;
+    state.money += income;
+    
+    log(`【月底結算】生活費 -$${cost}, 還貸 -$${loan}, 工資 +$${income}。結餘: ${formatMoney(state.money)}`);
+}
+
+function generateDailyStock() {
+    const name = STOCK_PREFIXES[rand(0, STOCK_PREFIXES.length-1)] + STOCK_SUFFIXES[rand(0, STOCK_SUFFIXES.length-1)];
+    
+    // 生成趨勢 -100 到 100
+    const t5 = rand(-20, 20);
+    const t30 = rand(-50, 50);
+    const t365 = rand(-100, 200);
+    
+    // 決定真新聞還是假新聞
+    let isGoodNews = Math.random() > 0.5;
+    let newsText = isGoodNews ? NEWS_GOOD[rand(0, NEWS_GOOD.length-1)] : NEWS_BAD[rand(0, NEWS_BAD.length-1)];
+    
+    // 實際漲跌概率 (隱藏值)
+    // 基礎 50/50，受新聞影響
+    let bullChance = 0.5;
+    if (isGoodNews) bullChance += 0.2; else bullChance -= 0.2;
+    
+    // 趨勢影響
+    if (t5 > 0) bullChance += 0.05;
+    if (t30 > 0) bullChance += 0.05;
+    
+    // 精算師特性：提示新聞真假 (通過UI顏色或標記)
+    if (hasTrait(17) && Math.random() < 0.7) {
+        newsText = `[看穿] ${newsText}`;
+    }
+
+    state.currentStock = {
+        name: name,
+        t5: t5,
+        t30: t30,
+        t365: t365,
+        news: newsText,
+        bullChance: bullChance,
+        volatility: rand(5, 30) // 波動率 5% - 30%
+    };
+    
+    // 渲染市場面板
+    document.getElementById('stock-name').innerText = name;
+    document.getElementById('stock-news').innerText = newsText;
+    document.getElementById('stock-news').className = isGoodNews ? "news-flash up" : "news-flash down";
+    
+    const fmtTrend = (v) => `<span class="${v>=0?'up':'down'}">${v>=0?'+':''}${v}%</span>`;
+    document.getElementById('trend-5').innerHTML = fmtTrend(t5);
+    document.getElementById('trend-30').innerHTML = fmtTrend(t30);
+    document.getElementById('trend-365').innerHTML = fmtTrend(t365);
+}
+
+/**
+ * 交易邏輯
+ */
+function setPos(percent) {
+    if (hasTrait(19) && (percent === 0.05 || percent === 0.2)) {
+        alert("【槓桿狂魔】你的手不聽使喚，只能下大注！");
+        return;
+    }
+    state.selectedPos = percent;
+    document.querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function trade(type) {
+    // 檢查失控狀態
+    let isCrazy = false;
+    if (!state.stressLocked && state.stress > 80) isCrazy = true;
+    if (!state.happyLocked && state.happy < 20) isCrazy = true;
+    
+    if (isCrazy && Math.random() < 0.5) { // 50%機率失控
+        log("<span class='danger-text'>【心態崩了】你雙眼發紅，手滑亂點了一通！</span>");
+        // 隨機操作
+        type = Math.random() > 0.5 ? 'long' : 'short';
+        state.selectedPos = [0.05, 0.2, 0.5, 1.0][rand(0,3)];
+        
+        // 神經刀特性
+        if (hasTrait(14)) {
+            state.currentStock.volatility *= 2; // 波動翻倍
+            log("【神經刀】觸發！這波操作不成功便成仁！");
+        }
+    } else if (type === 'skip') {
+        log(`你選擇觀望 ${state.currentStock.name}。`);
+        // 恢復快樂
+        let rec = hasTrait(18) ? 10 : 5; // 佛系回血
+        changeHappy(rec);
+        changeStress(-5);
+        nextDay();
+        return;
+    }
+
+    // 計算本金
+    let principal = state.money * state.selectedPos;
+    if (principal < 100) principal = state.money; // All in if low
+    
+    let stock = state.currentStock;
+    let actualMove = 0;
+    
+    // 計算結果
+    // 必勝邏輯
+    if (state.nextTradeWin) {
+        actualMove = Math.abs(stock.volatility); // 必漲/跌至盈利方向
+        if (type === 'short') actualMove = -actualMove; // 如果做空，讓股票跌
+        state.nextTradeWin = false;
+        log("<span class='event-text'>【內幕消息】生效！這波穩了！</span>");
+    } else {
+        // 正常隨機
+        let isUp = Math.random() < stock.bullChance;
+        let percent = rand(1, stock.volatility);
+        
+        // 運氣修正
+        if (state.luck > 80 && Math.random() < 0.3) isUp = (type === 'long'); // 好運修正
+        if (state.luck < 20 && Math.random() < 0.3) isUp = (type !== 'long'); // 霉運修正
+
+        actualMove = isUp ? percent : -percent;
+    }
+    
+    // 計算盈虧
+    let pnlPercent = 0;
+    if (type === 'long') pnlPercent = actualMove;
+    else pnlPercent = -actualMove;
+    
+    // 慎重勇者虧損減免
+    if (pnlPercent < 0 && hasTrait(13)) {
+        pnlPercent *= 0.9;
+    }
+    
+    let pnl = principal * (pnlPercent / 100);
+    state.money += pnl;
+    
+    // 更新心態
+    if (pnl > 0) {
+        changeStress(-10);
+        changeHappy(5);
+        log(`做${type==='long'?'多':'空'} ${stock.name} ${state.selectedPos*100}%倉位。 <span class="up">盈利 ${formatMoney(pnl)} (+${Math.abs(actualMove)}%)</span>`);
+    } else {
+        // 虧錢壓力大
+        let stressAdd = 10;
+        if (hasTrait(6)) stressAdd *= 2; // 玻璃心
+        changeStress(stressAdd);
+        changeHappy(-10);
+        log(`做${type==='long'?'多':'空'} ${stock.name} ${state.selectedPos*100}%倉位。 <span class="down">虧損 ${formatMoney(Math.abs(pnl))} (-${Math.abs(actualMove)}%)</span>`);
+    }
+    
+    nextDay();
+}
+
+/**
+ * 奇遇系統
+ */
+const ENCOUNTERS = [
+    {
+        title: "神祕乞丐",
+        desc: "路邊一個乞丐攔住你，兜售一本破書《K線真經》。",
+        choices: [
+            { txt: "花$1000買了", effect: () => { 
+                if(state.money < 1000) return "沒錢"; 
+                state.money -= 1000; 
+                if(checkLuck()) { state.luck += 10; return "書裡夾著一張彩票，中了小獎，運氣提升！"; }
+                else { state.stress += 10; return "全是廢紙，被騙了。"; }
+            }},
+            { txt: "給他$100吃飯", effect: () => {
+                state.money -= 100; state.happy += 5; state.luck += 5; return "好人有好報，心情變好了。";
+            }},
+            { txt: "無視", effect: () => "你冷漠地走開了。"},
+            { txt: "踢翻他的碗", effect: () => { state.luck -= 20; state.stress -= 5; return "發洩了情緒，但感覺運氣變差了。"; }}
+        ]
+    },
+    {
+        title: "老同學聚會",
+        desc: "高中同學邀請你參加聚會，據說有人混得很好。",
+        choices: [
+            { txt: "參加 (花費$2000)", effect: () => {
+                if(state.money < 2000) return "沒錢去";
+                state.money -= 2000;
+                if(Math.random() < 0.3) { state.nextTradeWin = true; return "聽到了內幕消息！下次交易必勝！"; }
+                else { state.stress += 10; return "全是炫富的，聽得心煩。"; }
+            }},
+            { txt: "不去", effect: () => { state.happy += 5; return "在家打遊戲更快樂。"; }},
+            { txt: "借錢給同學", effect: () => {
+                let amt = state.money * 0.1; state.money -= amt;
+                if(checkLuck()) { setTimeout(()=>{state.money += amt*3; log("同學還錢了！三倍奉還！")}, 5000); return "同學拿錢去創業了..."; }
+                else return "肉包子打狗，有去無回。";
+            }},
+            { txt: "炫耀自己", effect: () => { state.happy += 20; state.luck -= 5; return "雖然爽了，但好像得罪了人。"; }}
+        ]
+    },
+    {
+        title: "投資講座",
+        desc: "所謂的「大師」正在舉辦免費講座。",
+        choices: [
+            { txt: "認真聽講", effect: () => { state.stress += 5; return "學到了一些技術分析皮毛。"; }},
+            { txt: "質疑大師", effect: () => { 
+                if(state.luck > 60) { state.money += 5000; return "你揭穿了大師，主辦方退給你封口費。"; }
+                else { state.happy -= 10; return "被保全趕了出來。"; }
+            }},
+            { txt: "購買課程 ($5000)", effect: () => {
+                if(state.money < 5000) return "買不起";
+                state.money -= 5000;
+                state.nextTradeWin = true; return "雖然貴，但確實給了一個準確的代碼。";
+            }},
+            { txt: "睡覺", effect: () => { state.stress -= 20; return "冷氣很足，睡得很香。"; }}
+        ]
+    }
+    // 可以擴展更多奇遇...
+];
+
+function checkLuck() {
+    return Math.random() * 100 < state.luck;
+}
+
+function triggerEncounter() {
+    // 隨機選一個事件
+    let evt = ENCOUNTERS[rand(0, ENCOUNTERS.length - 1)];
+    
+    document.getElementById('event-title').innerText = evt.title;
+    document.getElementById('event-desc').innerText = evt.desc;
+    
+    let btnContainer = document.getElementById('event-choices');
+    btnContainer.innerHTML = '';
+    
+    evt.choices.forEach(c => {
+        let btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.innerText = c.txt;
+        btn.onclick = () => {
+            let res = c.effect();
+            log(`<span class="event-text">【奇遇結果】${res}</span>`);
+            document.getElementById('event-screen').classList.add('hidden');
+        };
+        btnContainer.appendChild(btn);
+    });
+    
+    document.getElementById('event-screen').classList.remove('hidden');
+}
+
+/**
+ * 輔助邏輯
+ */
+function updateUI() {
+    document.getElementById('val-money').innerText = formatMoney(state.money);
+    document.getElementById('val-date').innerText = `第 ${state.day} 天`;
+    
+    document.getElementById('val-stress').innerText = state.stress;
+    document.getElementById('bar-stress').style.width = Math.min(state.stress, 100) + '%';
+    
+    document.getElementById('val-happy').innerText = state.happy;
+    document.getElementById('bar-happy').style.width = state.happy + '%';
+    
+    document.getElementById('val-luck').innerText = state.luck;
+    
+    let statusText = "正常";
+    if (state.stress > 80) statusText = "崩潰邊緣";
+    if (state.happy < 20) statusText = "抑鬱";
+    document.getElementById('val-status').innerText = statusText;
+    if (statusText !== "正常") document.getElementById('val-status').className = "blink danger-text";
+    else document.getElementById('val-status').className = "";
+}
+
+function hasTrait(id) {
+    return state.traits.some(t => t.id === id);
+}
+
+function changeStress(val) {
+    if (state.stressLocked) return;
+    state.stress += val;
+    let max = state.maxStress || 100;
+    if (state.stress < 0) state.stress = 0;
+    if (state.stress > max) state.stress = max;
+}
+
+function changeHappy(val) {
+    if (state.happyLocked) return;
+    state.happy += val;
+    if (state.happy < 0) state.happy = 0;
+    if (state.happy > 100) state.happy = 100;
+}
+
+function log(msg) {
+    const logArea = document.getElementById('log-area');
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<span class="log-date">Day ${state.day}</span> ${msg}`;
+    logArea.appendChild(div);
+    logArea.scrollTop = logArea.scrollHeight;
+}
+
+function endGame(title, reason) {
+    document.getElementById('end-screen').classList.remove('hidden');
+    document.getElementById('end-title').innerText = title;
+    document.getElementById('end-reason').innerText = reason;
+    document.getElementById('end-money').innerText = formatMoney(state.money);
+}
+
+function checkWinCondition() {
+     if (state.money >= GAME_GOAL) return endGame("財務自由", "你達成了一個億的小目標！");
+}
+
+// 啟動初始化
+initStartScreen();
+
+</script>
+</body>
+</html>
